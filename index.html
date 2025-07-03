@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ចំណាយចំណូលប្រចាំថ្ងៃ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Koulen&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Khmer fonts */
+        body {
+            font-family: 'Noto Sans Khmer', sans-serif;
+        }
+        h1, h2, button {
+            font-family: 'Koulen', cursive;
+        }
+        /* Basic transitions for a smooth feel */
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">ចំណាយចំណូលប្រចាំថ្ងៃ</h1>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+
+            <!-- Left Column: Form and Summary -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Summary -->
+                <section id="summary" class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">សរុប</h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-lg">
+                            <span class="text-gray-600">ចំណូលសរុប:</span>
+                            <span id="total-income" class="font-semibold text-green-500">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center text-lg">
+                            <span class="text-gray-600">ចំណាយសរុប:</span>
+                            <span id="total-expense" class="font-semibold text-red-500">$0.00</span>
+                        </div>
+                        <hr class="border-gray-200 my-2">
+                        <div class="flex justify-between items-center text-xl">
+                            <span class="font-bold text-gray-800">សមតុល្យ:</span>
+                            <span id="balance" class="font-bold text-gray-900">$0.00</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Input Form -->
+                <section id="input-form-section" class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">បន្ថែមប្រតិបត្តិការ</h2>
+                    <form id="transaction-form" class="space-y-4">
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700">ការពិពណ៌នា</label>
+                            <input type="text" id="description" name="description" required placeholder="ឧ. ប្រាក់ខែ, ទិញម្ហូប..." class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="amount" class="block text-sm font-medium text-gray-700">ចំនួនទឹកប្រាក់ (+/-)</label>
+                            <input type="number" id="amount" name="amount" step="0.01" required placeholder="ใส่จำนวนเงิน (บวก=รายรับ, ลบ=รายจ่าย)" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="date" class="block text-sm font-medium text-gray-700">កាលបរិច្ឆេទ</label>
+                            <input type="date" id="date" name="date" required class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">បន្ថែម</button>
+                    </form>
+                </section>
+            </div>
+
+            <!-- Right Column: Transaction List -->
+            <div class="lg:col-span-3">
+                <section id="transaction-list-section" class="bg-white p-6 rounded-xl shadow-md min-h-full">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">ប្រវត្តិ</h2>
+                    <ul id="transaction-list" class="space-y-3">
+                        <!-- Transactions will be populated here -->
+                         <li class="text-center text-gray-500 py-8">មិនទាន់មានប្រតិបត្តិការទេ។</li>
+                    </ul>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
+            const transactionForm = document.getElementById('transaction-form');
+            const transactionList = document.getElementById('transaction-list');
+            const totalIncomeEl = document.getElementById('total-income');
+            const totalExpenseEl = document.getElementById('total-expense');
+            const balanceEl = document.getElementById('balance');
+            const dateInput = document.getElementById('date');
+
+            // --- State Management ---
+            let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+            // --- Core Functions ---
+
+            /**
+             * Renders all transactions to the list in the DOM.
+             */
+            function renderTransactions() {
+                transactionList.innerHTML = ''; // Clear the list first
+
+                if (transactions.length === 0) {
+                    transactionList.innerHTML = '<li class="text-center text-gray-500 py-8">មិនទាន់មានប្រតិបត្តិការទេ។</li>';
+                    return;
+                }
+                
+                // Create a copy and sort by date descending
+                const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                sortedTransactions.forEach(transaction => {
+                    const item = document.createElement('li');
+                    const isIncome = transaction.amount > 0;
+                    const amountColor = isIncome ? 'text-green-500' : 'text-red-500';
+                    const sign = isIncome ? '+' : '';
+
+                    item.classList.add('flex', 'justify-between', 'items-center', 'p-4', 'rounded-lg', 'bg-gray-50', 'hover:bg-gray-100', 'transition-all');
+                    item.innerHTML = `
+                        <div class="flex items-center space-x-4">
+                            <div class="w-2 h-10 rounded-full ${isIncome ? 'bg-green-500' : 'bg-red-500'}"></div>
+                            <div>
+                                <p class="font-semibold text-gray-800">${transaction.description}</p>
+                                <p class="text-sm text-gray-500">${transaction.date}</p>
+                            </div>
+                        </div>
+                        <div class="text-right flex items-center space-x-4">
+                            <p class="font-bold ${amountColor} text-lg">${sign}$${Math.abs(transaction.amount).toFixed(2)}</p>
+                            <button data-id="${transaction.id}" class="delete-btn text-sm text-white bg-red-500 hover:bg-red-600 rounded px-2 py-1">លុប</button>
+                        </div>
+                    `;
+                    transactionList.appendChild(item);
+                });
+            }
+
+            /**
+             * Calculates and updates the summary (income, expense, balance).
+             */
+            function updateSummary() {
+                const income = transactions
+                    .filter(t => t.amount > 0)
+                    .reduce((sum, t) => sum + t.amount, 0);
+
+                const expense = transactions
+                    .filter(t => t.amount < 0)
+                    .reduce((sum, t) => sum + t.amount, 0);
+
+                const balance = income + expense; // expense is already negative
+
+                totalIncomeEl.textContent = `$${income.toFixed(2)}`;
+                totalExpenseEl.textContent = `$${Math.abs(expense).toFixed(2)}`;
+                balanceEl.textContent = `$${balance.toFixed(2)}`;
+            }
+            
+            /**
+             * Saves the current transactions array to localStorage.
+             */
+            function saveTransactions() {
+                localStorage.setItem('transactions', JSON.stringify(transactions));
+            }
+
+            /**
+             * Adds a new transaction from the form.
+             */
+            function addTransaction(e) {
+                e.preventDefault();
+                const formData = new FormData(transactionForm);
+                const amount = parseFloat(formData.get('amount'));
+
+                if (isNaN(amount) || amount === 0) {
+                    alert('សូម​បញ្ចូល​ចំនួន​ទឹកប្រាក់​ដែល​ត្រឹមត្រូវ');
+                    return;
+                }
+                
+                const newTransaction = {
+                    id: Date.now(), // Simple unique ID
+                    description: formData.get('description'),
+                    amount: amount,
+                    date: formData.get('date'),
+                };
+
+                transactions.push(newTransaction);
+                
+                saveAndRerender();
+                transactionForm.reset();
+                setDateToToday(); // Reset date to today after submission
+            }
+
+            /**
+             * Deletes a transaction by its ID.
+             */
+            function deleteTransaction(id) {
+                transactions = transactions.filter(t => t.id !== id);
+                saveAndRerender();
+            }
+
+            /**
+             * A helper function to save state and update the UI.
+             */
+            function saveAndRerender() {
+                saveTransactions();
+                renderTransactions();
+                updateSummary();
+            }
+
+            /**
+             * Sets the date input to today's date.
+             */
+            function setDateToToday() {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+            
+            // --- Event Listeners ---
+            transactionForm.addEventListener('submit', addTransaction);
+            
+            // Use event delegation for delete buttons
+            transactionList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-btn')) {
+                    const id = parseInt(e.target.dataset.id);
+                    if (confirm('តើអ្នកពិតជាចង់លុបប្រតិបត្តិការនេះមែនទេ?')) {
+                        deleteTransaction(id);
+                    }
+                }
+            });
+
+            // --- Initial Setup ---
+            function init() {
+                setDateToToday();
+                renderTransactions();
+                updateSummary();
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>
